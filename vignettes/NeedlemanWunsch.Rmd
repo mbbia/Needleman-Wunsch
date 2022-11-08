@@ -1,0 +1,313 @@
+---
+title: "Needleman-Wunsch package for R"
+author: "Marco Bianchi"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{NeedlemanWunsch}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+options(rmarkdown.html_vignette.check_title = FALSE)
+```
+
+## Index
+
+1.  [Introduction](#intro)
+    -   [Aim of the project](#aim)
+    -   [Needleman-Wunsch algorithm](#NW)
+2.  [How to use the package](#howto)
+    -   [Installation and dependencies](#inst)
+    -   [Functions](#func)
+    -   [Data](#data)
+    -   [Workflow](#work)
+3.  [Source code](#code)
+    -   [rcpp_compute_matrices() function](#cpp)
+    -   [globalSequenceAlignment() function](#R)
+4.  [References](#ref)
+
+## 1. Introduction {#intro}
+
+### 1.1. Aim of the project {#aim}
+
+This package has been developed as a university project for the Scientific Programming course of the Master's degree in Bioinformatics for computational genomics at Politecnico of Milan. The aim of the project was to develop an R package containing a function that performs pairwise global sequence alignment between two nucleotide sequences using the Needleman-Wunsch algorithm.
+
+### 1.2. Needleman-Wunsch algorithm {#NW}
+
+Needleman-Wunsch algorithm is an algorithm used to align nucleotide (or even protein) sequences. The algorithm computes the score of every possible alignment between two sequences based on a scoring system and returns one (or more) optimal global sequence alignment(s) based on the higher score(s). It's important to say that Needleman Wunsch algorithm works well on sequences with a similar length while for aligning sequences with different lengths other approaches are way better.
+
+Different scoring systems can be adopted:
+
+-   The default scoring system used in this package gives +1 point for every match and gives -1 point for every gap or mismatch between the sequences.
+-   Another scoring system that can be used is a scoring system that gives different scores in absolute value for a match, a mismatch or a gap. In this way it's possible for example to penalize more the presence of a mismatch while penalizing less the presence of a gap (for example giving a score of -5 for each mismatch and a score of -4 for every gap).
+-   An alternative to these scoring systems could be to use a scoring matrix that gives a particular score to every pair of matches but this approach will not be discussed here since the package does not allow the use of this type of scoring system.
+
+## 2. How to use the package {#howto}
+
+### 2.1. Installation and dependencies {#inst}
+
+The only dependencies this package has are Rcpp and Biostrings.
+
+-   Rcpp has been used in order to improve the performances in the computation of the score and directions matrices since in order to perform that passage two nested loops are needed and R loops are way slower than C++ ones. This will be explained better in the following section regarding the implementation of the algorithm.
+-   Biostrings instead has been used in order to make simpler the handling of the input and of the output of the function. Using DNAString objects in fact is useful to handle the presence of lower case and upper case letters that can lead to errors using normal character variables. It also narrow the possible letters that the user can give as input since here we only want as input nucleotide sequences. The Biostrings function readDNAStringSet is also very useful because it let the user upload sequences from FASTA (or even FASTQ) files.
+
+In order to install this package is then required to install Rcpp and Biostrings. This can be done in different ways:
+
+-   It's possible to manually install Rcpp with the `install.package("Rcpp")` command and manually install Biostrings from BiocManager using `BiocManager::intall("Biostrings")`. Once these two packages are installed it's possible to install the NeedlemanWunsch package by running the command line `R CMD INSTALL NeedlemanWunsch_1.0.tar.gz` from the directory containing the package itself.
+-   A suggested approach instead is to use the `remotes::install_local("NeedlemanWunsch_1.0.tar.gz")` in R since it's able to automatically install the two dependencies even if they are contained in two different repositories (respectively CRAN and BioConductor).
+-   Lastly, using RStudio and only if Biostrings and Rcpp are installed, it's possible to click on "Tools" from the toolbar of RStudio, click on "Install packages..." and then choose "Package Archive File" and browse to the NeedlemanWunsch_1.0.tar.gz file location.
+
+### 2.2. Functions {#func}
+
+This package contains two functions but only one of them is intended to be used by the user. The two functions are: **globalSequenceAlignment()** and **rcpp_compute_matrices()**.
+
+The rcpp_compute_matrices() function is only used by the main function in order to speed up the computation of the matrices using C++ code.
+
+globalSequenceAlignment() insted is the main function contained in the package; it takes as parameters two DNAString objects and three integer numbers that represent respectively the scores for a gap, a mismatch and a match between the two sequences. This function returns a list containing different information from the alignment. This list can be accessed using the "**\$**" operator in R. The resulting list contains:
+
+-   **\$alignment**: the alignment represented as a DNAStringSet object.
+
+-   **\$score**: the score of the alignment computed from the last cell of the alignment matrix.
+
+-   **\$score_mat**: the matrix containing all the scores from the alignment.
+
+-   **\$dir_mat**: the matrix containing all the directions used to perform the traceback of the alignment.
+
+So, it's suggested to save the result from the function into a variable in order to be able to access the different pieces of information in a more convenient way.
+
+### 2.3. Data {#data}
+
+In the package are also present two sequences as DNAString objects that can be used as example sequences. These sequences are present as global variables and can be loaded simply using:
+
+```{r eval=FALSE}
+exSeq1 <- eln1 #load the sequence of elastin transcript variant 1
+exSeq2 <- eln3 #load the sequence of elastin transcript variant 3
+```
+
+### 2.4. Workflow {#work}
+
+In this section an example for the usage of this package will be shown.
+
+First, attach the package:
+
+```{r eval=FALSE}
+library(NeedlemanWunsch)
+```
+
+Then the creation of two DNAString objects is needed; there are different ways to do that:
+
+-   Using a normal character variable
+
+    ```{r eval=FALSE}
+    charVar <- "ATCG"
+    seq1 <- DNAString(charVar)
+    ```
+
+    In this case remember that only some symbols are allowed in the DNAString objects, to see which are those symbols it's possible to use the command `DNA_ALPHABET`.
+
+-   Uploading a FASTA (or FASTQ) file.
+
+    ```{r eval=FALSE}
+    pathToFile <- "../../filename.fasta"
+    set_from_fasta <- readDNAStringSet(pathToFile, format = "fasta")
+    seq2 <- set_from_fasta[[1]]
+    ```
+
+    Note that the last line of code is important since the readDNAStringSet function save the content of the FASTA file in a DNAStringSet and not in a DNAString object even if there is only one sequence contained.
+
+Once the two sequences are saved into two variables it's possible to run the alignment:
+
+```{r eval=FALSE}
+exampleAlignment <- globalSequenceAlignment(seq1, seq2)
+```
+
+In this case the parameters gap, mismatch and match are omitted and so the program will use the default ones that are respectively -1, -1 and +1.
+
+If we want to change these parameters we only need to specify them:
+
+```{r eval=FALSE}
+exampleAlignment <- globalSequenceAlignment(seq1, seq2, gap=-4, miss=-5, match=10)
+```
+
+As explained in the [Functions](#func) section above the different results can be accessed using:
+
+```{r eval=FALSE}
+exampleAlignment$alignment
+exampleAlignment$score
+exampleAlignment$score_mat
+exampleAlignment$dir_mat
+```
+
+## 3. Source code {#code}
+
+Commented source code is provided here.
+
+### 3.1. rcpp_compute_matrices() function {#cpp}
+
+```{Rcpp eval=FALSE}
+
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+List rcpp_compute_matrices(IntegerMatrix Am, StringMatrix Dm,
+                           StringVector seq1, StringVector seq2,
+                           int gap, int miss, int match) {
+    
+    // compute the dimensions of the matrices
+    int nrow = Am.nrow(), ncol = Am.ncol();
+    
+    // loop through every cell of the matrix and compute the score
+    // in the case of a gap, of a mismatch and of a match
+    for (int i = 1; i < nrow; i++) {
+      for (int j = 1; j < ncol; j++) {
+        int vertical_score = Am(i-1, j) + gap;
+        int horizontal_score = Am(i, j-1) + gap;
+        int diagonal_score = 0;
+        if (seq1[j-1] == seq2[i-1]) {
+          diagonal_score = Am(i-1, j-1) + match;
+        }
+        else {
+          diagonal_score = Am(i-1, j-1) + miss;
+        }
+        
+        // for every cell save the three scores 
+        IntegerVector score = {vertical_score, horizontal_score, diagonal_score};
+        
+        // compute the maximum between the three scores
+        int max_score = max(score);
+        
+        // assign the maximum score to the current cell
+        Am(i, j) = max_score;
+        
+        // save the direction of the max score for the traceback phase
+        if (max_score == diagonal_score) {
+          Dm(i, j) = "D";
+        }
+        else if (max_score == horizontal_score) {
+          Dm(i, j) = "H";
+        }
+        else {
+          Dm(i, j) = "V";
+        }
+      }
+    }
+    
+    // create a list for returning both the matrices
+    List results;
+    results["alignment"] = Am;
+    results["directions"] = Dm;
+
+    return results;
+}
+```
+
+### 3.2. globalSequenceAlignment() function {#R}
+
+```{r eval=FALSE}
+globalSequenceAlignment <- function(seq1, seq2, gap = -1, miss = -1, match = 1) {
+  
+  # error handling
+  stopifnot("seq1 must be a DNAString object"=class(seq1) == "DNAString")
+  stopifnot("seq2 must be a DNAString object"=class(seq2) == "DNAString")
+  stopifnot("seq1 length must be at least 1"=length(seq1) >= 1)
+  stopifnot("seq2 length must be at least 1"=length(seq2) >= 1)
+  stopifnot("gap score must be an integer"=all.equal(gap, as.integer(gap)))
+  stopifnot("miss score must be an integer"=all.equal(miss, as.integer(miss)))
+  stopifnot("match score must be an integer"=all.equal(match, as.integer(match)))
+  
+  # splitting the sequences in order to have vectors of strings
+  seq1_split <- unlist(strsplit(toString(seq1), ""))
+  seq2_split <- unlist(strsplit(toString(seq2), ""))
+  
+  # computing the length of the two sequences
+  len1 <- length(seq1_split)
+  len2 <- length(seq2_split)
+  
+  # creating the alignment score matrix
+  alignment_matrix <- matrix(0, ncol = len1+1, nrow = len2+1)
+  # filling first row and column of the alignment score matrix
+  for (i in 2:nrow(alignment_matrix)) {
+    alignment_matrix[i,1] <- (alignment_matrix[i,1]+(i-1))*(gap)
+  }
+  for (j in 2:ncol(alignment_matrix)) {
+    alignment_matrix[1,j] <- (alignment_matrix[1,j]+(j-1))*(gap)
+  }
+  
+  # creating the directions matrix
+  directions_matrix <- matrix("0", ncol = len1+1, nrow = len2+1)
+  # filling first row and column of the directions matrix
+  directions_matrix[1,] <- rep("H")
+  directions_matrix[,1] <- rep("V")
+  directions_matrix[1,1] <- "0"
+  
+  # computing the resulting score and directions matrices with an Rcpp function
+  resulting_matrices <- rcpp_compute_matrices(alignment_matrix, directions_matrix,
+                                              seq1_split, seq2_split, gap, miss, match)
+  
+  # saving the output of the rcpp_compute_matrices function
+  alignment_matrix <- resulting_matrices$alignment
+  directions_matrix <- resulting_matrices$directions
+  
+  # rename the matrices axis with the sequences nucleotides
+  rownames(directions_matrix) <- c("-", seq2_split)
+  colnames(directions_matrix) <- c("-", seq1_split)
+  
+  # initialize the vector containing the alignments
+  alignment1 <- c()
+  alignment2 <- c()
+  
+  # traceback fase of the algorithm
+  while (directions_matrix[i,j] != "0") {
+    if (directions_matrix[i,j] == "H") {
+      alignment1 <- append(alignment1, colnames(directions_matrix)[j], after = 0)
+      alignment2 <- append(alignment2, "-", after = 0)
+      j = j - 1
+      
+    } else if (directions_matrix[i,j] == "V") {
+      alignment1 <- append(alignment1, "-", after = 0)
+      alignment2 <- append(alignment2, rownames(directions_matrix)[i], after = 0)
+      i = i - 1
+      
+    } else {
+      alignment1 <- append(alignment1, colnames(directions_matrix)[j], after = 0)
+      alignment2 <- append(alignment2, rownames(directions_matrix)[i], after = 0)
+      i = i - 1
+      j = j - 1
+    }
+  }
+  
+  # convert vector of strings into strings
+  alignment1 <- base::paste(alignment1, collapse = "")
+  alignment2 <- base::paste(alignment2, collapse = "")
+
+  # saving the final alignment as DNAStringSet object
+  final_alignment <- DNAStringSet(c(alignment1,alignment2))
+  names(final_alignment) <- c("Sequence 1", "Sequence 2")
+  # saving the score of the alignment
+  alignment_score <- alignment_matrix[nrow(alignment_matrix), ncol(alignment_matrix)]
+  
+  # creating the list of results to return
+  results <- list(alignment = final_alignment, score = alignment_score, 
+                  score_mat = alignment_matrix, dir_mat = directions_matrix)
+  
+  return(results)
+  
+}
+```
+
+## 4. References {#ref}
+
+-   Needleman SB, Wunsch CD. A general method applicable to the search for similarities in the amino acid sequence of two proteins. Journal of molecular biology. 1970 Mar 28.
+
+-   Eddelbuettel D, Balamuta JJ. Extending R with C++: A Brief Introduction to Rcpp. 2022 Jan 11.
+
+-   Eddelbuettel D, Francois R. Writing a package that uses Rcpp. 2022 Jan 11.
+
+------------------------------------------------------------------------

@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Marco Bianchi" />
+
+<meta name="date" content="2022-08-01" />
+
+<title>Needleman-Wunsch package for R</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Needleman-Wunsch package for R</h1>
+<h4 class="author">Marco Bianchi</h4>
+<h4 class="date">2022-08-01</h4>
+
+
+
+<div id="index" class="section level2">
+<h2>Index</h2>
+<ol style="list-style-type: decimal">
+<li><a href="#intro">Introduction</a>
+<ul>
+<li><a href="#aim">Aim of the project</a></li>
+<li><a href="#NW">Needleman-Wunsch algorithm</a></li>
+</ul></li>
+<li><a href="#howto">How to use the package</a>
+<ul>
+<li><a href="#inst">Installation and dependencies</a></li>
+<li><a href="#func">Functions</a></li>
+<li><a href="#data">Data</a></li>
+<li><a href="#work">Workflow</a></li>
+</ul></li>
+<li><a href="#code">Source code</a>
+<ul>
+<li><a href="#cpp">rcpp_compute_matrices() function</a></li>
+<li><a href="#R">globalSequenceAlignment() function</a></li>
+</ul></li>
+<li><a href="#ref">References</a></li>
+</ol>
+</div>
+<div id="intro" class="section level2">
+<h2>1. Introduction</h2>
+<div id="aim" class="section level3">
+<h3>1.1. Aim of the project</h3>
+<p>This package has been developed as a university project for the
+Scientific Programming course of the Master’s degree in Bioinformatics
+for computational genomics at Politecnico of Milan. The aim of the
+project was to develop an R package containing a function that performs
+pairwise global sequence alignment between two nucleotide sequences
+using the Needleman-Wunsch algorithm.</p>
+</div>
+<div id="NW" class="section level3">
+<h3>1.2. Needleman-Wunsch algorithm</h3>
+<p>Needleman-Wunsch algorithm is an algorithm used to align nucleotide
+(or even protein) sequences. The algorithm computes the score of every
+possible alignment between two sequences based on a scoring system and
+returns one (or more) optimal global sequence alignment(s) based on the
+higher score(s). It’s important to say that Needleman Wunsch algorithm
+works well on sequences with a similar length while for aligning
+sequences with different lengths other approaches are way better.</p>
+<p>Different scoring systems can be adopted:</p>
+<ul>
+<li>The default scoring system used in this package gives +1 point for
+every match and gives -1 point for every gap or mismatch between the
+sequences.</li>
+<li>Another scoring system that can be used is a scoring system that
+gives different scores in absolute value for a match, a mismatch or a
+gap. In this way it’s possible for example to penalize more the presence
+of a mismatch while penalizing less the presence of a gap (for example
+giving a score of -5 for each mismatch and a score of -4 for every
+gap).</li>
+<li>An alternative to these scoring systems could be to use a scoring
+matrix that gives a particular score to every pair of matches but this
+approach will not be discussed here since the package does not allow the
+use of this type of scoring system.</li>
+</ul>
+</div>
+</div>
+<div id="howto" class="section level2">
+<h2>2. How to use the package</h2>
+<div id="inst" class="section level3">
+<h3>2.1. Installation and dependencies</h3>
+<p>The only dependencies this package has are Rcpp and Biostrings.</p>
+<ul>
+<li>Rcpp has been used in order to improve the performances in the
+computation of the score and directions matrices since in order to
+perform that passage two nested loops are needed and R loops are way
+slower than C++ ones. This will be explained better in the following
+section regarding the implementation of the algorithm.</li>
+<li>Biostrings instead has been used in order to make simpler the
+handling of the input and of the output of the function. Using DNAString
+objects in fact is useful to handle the presence of lower case and upper
+case letters that can lead to errors using normal character variables.
+It also narrow the possible letters that the user can give as input
+since here we only want as input nucleotide sequences. The Biostrings
+function readDNAStringSet is also very useful because it let the user
+upload sequences from FASTA (or even FASTQ) files.</li>
+</ul>
+<p>In order to install this package is then required to install Rcpp and
+Biostrings. This can be done in different ways:</p>
+<ul>
+<li>It’s possible to manually install Rcpp with the
+<code>install.package(&quot;Rcpp&quot;)</code> command and manually install
+Biostrings from BiocManager using
+<code>BiocManager::intall(&quot;Biostrings&quot;)</code>. Once these two packages
+are installed it’s possible to install the NeedlemanWunsch package by
+running the command line
+<code>R CMD INSTALL NeedlemanWunsch_1.0.tar.gz</code> from the directory
+containing the package itself.</li>
+<li>A suggested approach instead is to use the
+<code>remotes::install_local(&quot;NeedlemanWunsch_1.0.tar.gz&quot;)</code> in R
+since it’s able to automatically install the two dependencies even if
+they are contained in two different repositories (respectively CRAN and
+BioConductor).</li>
+<li>Lastly, using RStudio and only if Biostrings and Rcpp are installed,
+it’s possible to click on “Tools” from the toolbar of RStudio, click on
+“Install packages…” and then choose “Package Archive File” and browse to
+the NeedlemanWunsch_1.0.tar.gz file location.</li>
+</ul>
+</div>
+<div id="func" class="section level3">
+<h3>2.2. Functions</h3>
+<p>This package contains two functions but only one of them is intended
+to be used by the user. The two functions are:
+<strong>globalSequenceAlignment()</strong> and
+<strong>rcpp_compute_matrices()</strong>.</p>
+<p>The rcpp_compute_matrices() function is only used by the main
+function in order to speed up the computation of the matrices using C++
+code.</p>
+<p>globalSequenceAlignment() insted is the main function contained in
+the package; it takes as parameters two DNAString objects and three
+integer numbers that represent respectively the scores for a gap, a
+mismatch and a match between the two sequences. This function returns a
+list containing different information from the alignment. This list can
+be accessed using the “<strong>$</strong>” operator in R. The resulting
+list contains:</p>
+<ul>
+<li><p><strong>$alignment</strong>: the alignment represented as a
+DNAStringSet object.</p></li>
+<li><p><strong>$score</strong>: the score of the alignment computed from
+the last cell of the alignment matrix.</p></li>
+<li><p><strong>$align_mat</strong>: the matrix containing all the scores
+from the alignment.</p></li>
+<li><p><strong>$dir_mat</strong>: the matrix containing all the
+directions used to perform the traceback of the alignment.</p></li>
+</ul>
+<p>So, it’s suggested to save the result from the function into a
+variable in order to be able to access the different pieces of
+information in a more convenient way.</p>
+</div>
+<div id="data" class="section level3">
+<h3>2.3. Data</h3>
+<p>In the package are also present two sequences as DNAString objects
+that can be used as example sequences. These sequences are present as
+global variables and can be loaded simply using:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>exSeq1 <span class="ot">&lt;-</span> eln1 <span class="co">#load the sequence of elastin transcript variant 1</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>exSeq2 <span class="ot">&lt;-</span> eln3 <span class="co">#load the sequence of elastin transcript variant 3</span></span></code></pre></div>
+</div>
+<div id="work" class="section level3">
+<h3>2.4. Workflow</h3>
+<p>In this section an example for the usage of this package will be
+shown.</p>
+<p>First, attach the package:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(NeedlemanWunsch)</span></code></pre></div>
+<p>Then the creation of two DNAString objects is needed; there are
+different ways to do that:</p>
+<ul>
+<li><p>Using a normal character variable</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>charVar <span class="ot">&lt;-</span> <span class="st">&quot;ATCG&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>seq1 <span class="ot">&lt;-</span> <span class="fu">DNAString</span>(charVar)</span></code></pre></div>
+<p>In this case remember that only some symbols are allowed in the
+DNAString objects, to see which are those symbols it’s possible to use
+the command <code>DNA_ALPHABET</code>.</p></li>
+<li><p>Uploading a FASTA (or FASTQ) file.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>pathToFile <span class="ot">&lt;-</span> <span class="st">&quot;../../filename.fasta&quot;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>set_from_fasta <span class="ot">&lt;-</span> <span class="fu">readDNAStringSet</span>(pathToFile, <span class="at">format =</span> <span class="st">&quot;fasta&quot;</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>seq2 <span class="ot">&lt;-</span> set_from_fasta[[<span class="dv">1</span>]]</span></code></pre></div>
+<p>Note that the last line of code is important since the
+readDNAStringSet function save the content of the FASTA file in a
+DNAStringSet and not in a DNAString object even if there is only one
+sequence contained.</p></li>
+</ul>
+<p>Once the two sequences are saved into two variables it’s possible to
+run the alignment:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>exampleAlignment <span class="ot">&lt;-</span> <span class="fu">globalSequenceAlignment</span>(seq1, seq2)</span></code></pre></div>
+<p>In this case the parameters gap, mismatch and match are omitted and
+so the program will use the default ones that are respectively -1, -1
+and +1.</p>
+<p>If we want to change these parameters we only need to specify
+them:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>exampleAlignment <span class="ot">&lt;-</span> <span class="fu">globalSequenceAlignment</span>(seq1, seq2, <span class="at">gap=</span><span class="sc">-</span><span class="dv">4</span>, <span class="at">miss=</span><span class="sc">-</span><span class="dv">5</span>, <span class="at">match=</span><span class="dv">10</span>)</span></code></pre></div>
+<p>As explained in the <a href="#func">Functions</a> section above the
+different results can be accessed using:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>exampleAlignment<span class="sc">$</span>alignment</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>exampleAlignment<span class="sc">$</span>score</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>exampleAlignment<span class="sc">$</span>align_mat</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>exampleAlignment<span class="sc">$</span>dir_mat</span></code></pre></div>
+</div>
+</div>
+<div id="code" class="section level2">
+<h2>3. Source code</h2>
+<p>Commented source code is provided here.</p>
+<div id="cpp" class="section level3">
+<h3>3.1. rcpp_compute_matrices() function</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Rcpp.h&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> Rcpp<span class="op">;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// [[Rcpp::export]]</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>List rcpp_compute_matrices<span class="op">(</span>IntegerMatrix Am<span class="op">,</span> StringMatrix Dm<span class="op">,</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>                           StringVector seq1<span class="op">,</span> StringVector seq2<span class="op">,</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                           <span class="dt">int</span> gap<span class="op">,</span> <span class="dt">int</span> miss<span class="op">,</span> <span class="dt">int</span> match<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// compute the dimensions of the matrices</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> nrow <span class="op">=</span> Am<span class="op">.</span>nrow<span class="op">(),</span> ncol <span class="op">=</span> Am<span class="op">.</span>ncol<span class="op">();</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// loop through every cell of the matrix and compute the score</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// in the case of a gap, of a mismatch and of a match</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> i <span class="op">&lt;</span> nrow<span class="op">;</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> j <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> j <span class="op">&lt;</span> ncol<span class="op">;</span> j<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> vertical_score <span class="op">=</span> Am<span class="op">(</span>i<span class="op">-</span><span class="dv">1</span><span class="op">,</span> j<span class="op">)</span> <span class="op">+</span> gap<span class="op">;</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> horizontal_score <span class="op">=</span> Am<span class="op">(</span>i<span class="op">,</span> j<span class="op">-</span><span class="dv">1</span><span class="op">)</span> <span class="op">+</span> gap<span class="op">;</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> diagonal_score <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>seq1<span class="op">[</span>j<span class="op">-</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> seq2<span class="op">[</span>i<span class="op">-</span><span class="dv">1</span><span class="op">])</span> <span class="op">{</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>          diagonal_score <span class="op">=</span> Am<span class="op">(</span>i<span class="op">-</span><span class="dv">1</span><span class="op">,</span> j<span class="op">-</span><span class="dv">1</span><span class="op">)</span> <span class="op">+</span> match<span class="op">;</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>          diagonal_score <span class="op">=</span> Am<span class="op">(</span>i<span class="op">-</span><span class="dv">1</span><span class="op">,</span> j<span class="op">-</span><span class="dv">1</span><span class="op">)</span> <span class="op">+</span> miss<span class="op">;</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="co">// for every cell save the three scores </span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        IntegerVector score <span class="op">=</span> <span class="op">{</span>vertical_score<span class="op">,</span> horizontal_score<span class="op">,</span> diagonal_score<span class="op">};</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// compute the maximum between the three scores</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>        <span class="dt">int</span> max_score <span class="op">=</span> max<span class="op">(</span>score<span class="op">);</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="co">// assign the maximum score to the current cell</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        Am<span class="op">(</span>i<span class="op">,</span> j<span class="op">)</span> <span class="op">=</span> max_score<span class="op">;</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        <span class="co">// save the direction of the max score for the traceback phase</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>max_score <span class="op">==</span> diagonal_score<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>          Dm<span class="op">(</span>i<span class="op">,</span> j<span class="op">)</span> <span class="op">=</span> <span class="st">&quot;D&quot;</span><span class="op">;</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>max_score <span class="op">==</span> horizontal_score<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>          Dm<span class="op">(</span>i<span class="op">,</span> j<span class="op">)</span> <span class="op">=</span> <span class="st">&quot;H&quot;</span><span class="op">;</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>          Dm<span class="op">(</span>i<span class="op">,</span> j<span class="op">)</span> <span class="op">=</span> <span class="st">&quot;V&quot;</span><span class="op">;</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>      <span class="op">}</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>    <span class="co">// create a list for returning both the matrices</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>    List results<span class="op">;</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>    results<span class="op">[</span><span class="st">&quot;alignment&quot;</span><span class="op">]</span> <span class="op">=</span> Am<span class="op">;</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>    results<span class="op">[</span><span class="st">&quot;directions&quot;</span><span class="op">]</span> <span class="op">=</span> Dm<span class="op">;</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> results<span class="op">;</span></span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+</div>
+<div id="R" class="section level3">
+<h3>3.2. globalSequenceAlignment() function</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>globalSequenceAlignment <span class="ot">&lt;-</span> <span class="cf">function</span>(seq1, seq2, <span class="at">gap =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">miss =</span> <span class="sc">-</span><span class="dv">1</span>, <span class="at">match =</span> <span class="dv">1</span>) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># error handling</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="st">&quot;seq1 must be a DNAString object&quot;</span><span class="ot">=</span><span class="fu">class</span>(seq1) <span class="sc">==</span> <span class="st">&quot;DNAString&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="st">&quot;seq2 must be a DNAString object&quot;</span><span class="ot">=</span><span class="fu">class</span>(seq2) <span class="sc">==</span> <span class="st">&quot;DNAString&quot;</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="st">&quot;seq1 length must be at least 1&quot;</span><span class="ot">=</span><span class="fu">length</span>(seq1) <span class="sc">&gt;=</span> <span class="dv">1</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="st">&quot;seq2 length must be at least 1&quot;</span><span class="ot">=</span><span class="fu">length</span>(seq2) <span class="sc">&gt;=</span> <span class="dv">1</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="st">&quot;gap score must be an integer&quot;</span><span class="ot">=</span><span class="fu">all.equal</span>(gap, <span class="fu">as.integer</span>(gap)))</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="st">&quot;miss score must be an integer&quot;</span><span class="ot">=</span><span class="fu">all.equal</span>(miss, <span class="fu">as.integer</span>(miss)))</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stopifnot</span>(<span class="st">&quot;match score must be an integer&quot;</span><span class="ot">=</span><span class="fu">all.equal</span>(match, <span class="fu">as.integer</span>(match)))</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># splitting the sequences in order to have vectors of strings</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>  seq1_split <span class="ot">&lt;-</span> <span class="fu">unlist</span>(<span class="fu">strsplit</span>(<span class="fu">toString</span>(seq1), <span class="st">&quot;&quot;</span>))</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>  seq2_split <span class="ot">&lt;-</span> <span class="fu">unlist</span>(<span class="fu">strsplit</span>(<span class="fu">toString</span>(seq2), <span class="st">&quot;&quot;</span>))</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># computing the length of the two sequences</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  len1 <span class="ot">&lt;-</span> <span class="fu">length</span>(seq1_split)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  len2 <span class="ot">&lt;-</span> <span class="fu">length</span>(seq2_split)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># creating the alignment score matrix</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  alignment_matrix <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, <span class="at">ncol =</span> len1<span class="sc">+</span><span class="dv">1</span>, <span class="at">nrow =</span> len2<span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filling first row and column of the alignment score matrix</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="fu">nrow</span>(alignment_matrix)) {</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    alignment_matrix[i,<span class="dv">1</span>] <span class="ot">&lt;-</span> (alignment_matrix[i,<span class="dv">1</span>]<span class="sc">+</span>(i<span class="dv">-1</span>))<span class="sc">*</span>(gap)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (j <span class="cf">in</span> <span class="dv">2</span><span class="sc">:</span><span class="fu">ncol</span>(alignment_matrix)) {</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    alignment_matrix[<span class="dv">1</span>,j] <span class="ot">&lt;-</span> (alignment_matrix[<span class="dv">1</span>,j]<span class="sc">+</span>(j<span class="dv">-1</span>))<span class="sc">*</span>(gap)</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># creating the directions matrix</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  directions_matrix <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="st">&quot;0&quot;</span>, <span class="at">ncol =</span> len1<span class="sc">+</span><span class="dv">1</span>, <span class="at">nrow =</span> len2<span class="sc">+</span><span class="dv">1</span>)</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filling first row and column of the directions matrix</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>  directions_matrix[<span class="dv">1</span>,] <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="st">&quot;H&quot;</span>)</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>  directions_matrix[,<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="st">&quot;V&quot;</span>)</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>  directions_matrix[<span class="dv">1</span>,<span class="dv">1</span>] <span class="ot">&lt;-</span> <span class="st">&quot;0&quot;</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>  <span class="co"># computing the resulting score and directions matrices with an Rcpp function</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>  resulting_matrices <span class="ot">&lt;-</span> <span class="fu">rcpp_compute_matrices</span>(alignment_matrix, directions_matrix,</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>                                              seq1_split, seq2_split, gap, miss, match)</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  <span class="co"># saving the output of the rcpp_compute_matrices function</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  alignment_matrix <span class="ot">&lt;-</span> resulting_matrices<span class="sc">$</span>alignment</span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>  directions_matrix <span class="ot">&lt;-</span> resulting_matrices<span class="sc">$</span>directions</span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rename the matrices axis with the sequences nucleotides</span></span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>(directions_matrix) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;-&quot;</span>, seq2_split)</span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">colnames</span>(directions_matrix) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;-&quot;</span>, seq1_split)</span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>  <span class="co"># initialize the vector containing the alignments</span></span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>  alignment1 <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>  alignment2 <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>  <span class="co"># traceback fase of the algorithm</span></span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>  <span class="cf">while</span> (directions_matrix[i,j] <span class="sc">!=</span> <span class="st">&quot;0&quot;</span>) {</span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (directions_matrix[i,j] <span class="sc">==</span> <span class="st">&quot;H&quot;</span>) {</span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>      alignment1 <span class="ot">&lt;-</span> <span class="fu">append</span>(alignment1, <span class="fu">colnames</span>(directions_matrix)[j], <span class="at">after =</span> <span class="dv">0</span>)</span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>      alignment2 <span class="ot">&lt;-</span> <span class="fu">append</span>(alignment2, <span class="st">&quot;-&quot;</span>, <span class="at">after =</span> <span class="dv">0</span>)</span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>      j <span class="ot">=</span> j <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> <span class="cf">if</span> (directions_matrix[i,j] <span class="sc">==</span> <span class="st">&quot;V&quot;</span>) {</span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>      alignment1 <span class="ot">&lt;-</span> <span class="fu">append</span>(alignment1, <span class="st">&quot;-&quot;</span>, <span class="at">after =</span> <span class="dv">0</span>)</span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>      alignment2 <span class="ot">&lt;-</span> <span class="fu">append</span>(alignment2, <span class="fu">rownames</span>(directions_matrix)[i], <span class="at">after =</span> <span class="dv">0</span>)</span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>      i <span class="ot">=</span> i <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>      </span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>      alignment1 <span class="ot">&lt;-</span> <span class="fu">append</span>(alignment1, <span class="fu">colnames</span>(directions_matrix)[j], <span class="at">after =</span> <span class="dv">0</span>)</span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>      alignment2 <span class="ot">&lt;-</span> <span class="fu">append</span>(alignment2, <span class="fu">rownames</span>(directions_matrix)[i], <span class="at">after =</span> <span class="dv">0</span>)</span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>      i <span class="ot">=</span> i <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>      j <span class="ot">=</span> j <span class="sc">-</span> <span class="dv">1</span></span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a>  <span class="co"># convert vector of strings into strings</span></span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>  alignment1 <span class="ot">&lt;-</span> base<span class="sc">::</span><span class="fu">paste</span>(alignment1, <span class="at">collapse =</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>  alignment2 <span class="ot">&lt;-</span> base<span class="sc">::</span><span class="fu">paste</span>(alignment2, <span class="at">collapse =</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>  <span class="co"># saving the final alignment as DNAStringSet object</span></span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a>  final_alignment <span class="ot">&lt;-</span> <span class="fu">DNAStringSet</span>(<span class="fu">c</span>(alignment1,alignment2))</span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>  <span class="fu">names</span>(final_alignment) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Sequence 1&quot;</span>, <span class="st">&quot;Sequence 2&quot;</span>)</span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>  <span class="co"># saving the score of the alignment</span></span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>  alignment_score <span class="ot">&lt;-</span> alignment_matrix[<span class="fu">nrow</span>(alignment_matrix), <span class="fu">ncol</span>(alignment_matrix)]</span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a>  <span class="co"># creating the list of results to return</span></span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a>  results <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">alignment =</span> final_alignment, <span class="at">score =</span> alignment_score, </span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a>                  <span class="at">score_mat =</span> alignment_matrix, <span class="at">dir_mat =</span> directions_matrix)</span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(results)</span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+</div>
+<div id="ref" class="section level2">
+<h2>4. References</h2>
+<ul>
+<li><p>Needleman SB, Wunsch CD. A general method applicable to the
+search for similarities in the amino acid sequence of two proteins.
+Journal of molecular biology. 1970 Mar 28.</p></li>
+<li><p>Eddelbuettel D, Balamuta JJ. Extending R with C++: A Brief
+Introduction to Rcpp. 2022 Jan 11.</p></li>
+<li><p>Eddelbuettel D, Francois R. Writing a package that uses Rcpp.
+2022 Jan 11.</p></li>
+</ul>
+<hr />
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

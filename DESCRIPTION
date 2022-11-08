@@ -1,0 +1,21 @@
+Package: NeedlemanWunsch
+Type: Package
+Title: Perform pairwise global sequence alignment
+Description: This package contains a function that perform pairwise global sequence alignment 
+ using the Needleman-Wunsch algorithm. The package uses C++ code in order to speed up thecomputation of the scores needed to properly align the two sequences.
+ This package has been developed for Scientific programming course of the master's degree
+ in Bioinformatics for computational genomics at Politecnico of Milan.
+Version: 1.0
+Date: 2022-07-28
+Encoding: UTF-8
+Author: Marco Bianchi
+Maintainer: Marco Bianchi <marco30.bianchi@mail.polimi.it>
+License: GPL (>= 2)
+Imports: Rcpp (>= 1.0.9)
+LinkingTo: Rcpp
+Suggests: knitr, rmarkdown, testthat
+VignetteBuilder: knitr
+RoxygenNote: 7.2.1
+Depends: R (>= 2.10), Biostrings
+LazyData: true
+BiocViews:
